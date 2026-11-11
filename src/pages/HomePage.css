@@ -1,0 +1,44 @@
+/* HomePage styles */
+
+.home-page {
+  width: 100%;
+}
+
+/* ── Debug label ──────────────────────────────────────────────────── */
+.debug-label {
+  font-size: 0.72rem;
+  color: #999;
+  margin-bottom: 1.25rem;
+  font-family: monospace;
+}
+
+/* ── Results summary line ────────────────────────────────────────── */
+.results-summary {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+/* ── Book list grid ──────────────────────────────────────────────── */
+.book-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Two columns on wider screens */
+@media (min-width: 600px) {
+  .book-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.book-list__item {
+  display: flex; /* stretch BookCard to fill the grid cell */
+}
+
+.book-list__item .book-card {
+  flex: 1;
+}
+
