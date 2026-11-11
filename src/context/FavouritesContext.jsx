@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
 
 /**
  * FavouritesContext — shares favourite books across the entire app.
@@ -11,9 +11,13 @@ import { createContext, useContext, useState } from 'react'
  *     Whenever the value changes every subscribed component re-renders.
  *  3. We export a custom hook (useFavourites) so consumers never import the
  *     raw context object — a common, cleaner pattern.
+ *
+ * useCallback on handlers:
+ *   addFavourite and removeFavourite are wrapped with useCallback so they get
+ *   a stable reference across renders. Without this, every Provider re-render
+ *   would produce new function references, defeating React.memo on consumers.
  */
 
-// Create the context with a safe empty default
 const FavouritesContext = createContext({
   favourites: [],
   addFavourite: () => {},
@@ -21,42 +25,42 @@ const FavouritesContext = createContext({
   isFavourite: () => false,
 })
 
-/**
- * FavouritesProvider — wraps the app and owns the favourites state.
- * Place this around <App /> (or around <Routes>) so all routes can read it.
- */
 function FavouritesProvider({ children }) {
-  // favourites is an array of normalised book objects: { key, title, author, year, coverUrl }
   const [favourites, setFavourites] = useState([])
 
   /**
    * addFavourite — adds a book if it isn't already saved.
-   * Duplicate prevention: we check whether a book with the same key exists.
+   * useCallback with [] deps: the function reference is created once and
+   * never changes. The functional updater form of setFavourites means we
+   * don't need `favourites` in the dependency array.
    */
-  function addFavourite(book) {
+  const addFavourite = useCallback((book) => {
     setFavourites((prev) => {
       const alreadySaved = prev.some((b) => b.key === book.key)
-      if (alreadySaved) return prev          // return unchanged array
-      return [...prev, book]                 // append the new book
+      if (alreadySaved) return prev
+      return [...prev, book]
     })
-  }
+  }, [])
 
   /**
    * removeFavourite — removes a book by its key.
+   * Same reasoning: functional updater, stable [] deps.
    */
-  function removeFavourite(bookKey) {
+  const removeFavourite = useCallback((bookKey) => {
     setFavourites((prev) => prev.filter((b) => b.key !== bookKey))
-  }
+  }, [])
 
   /**
-   * isFavourite — returns true if a book is already in the list.
-   * Used by BookCard to show the correct button label.
+   * isFavourite — returns true if a book is already saved.
+   * This cannot use [] deps because it reads `favourites` synchronously.
+   * It is intentionally NOT memoised with useCallback because:
+   *   - It is not passed as a prop to memoised children directly
+   *   - HomePage calls it inline to derive `isSaved` before passing to BookCard
    */
   function isFavourite(bookKey) {
     return favourites.some((b) => b.key === bookKey)
   }
 
-  // The value object is what every consumer receives via useFavourites()
   const value = { favourites, addFavourite, removeFavourite, isFavourite }
 
   return (
@@ -66,12 +70,6 @@ function FavouritesProvider({ children }) {
   )
 }
 
-/**
- * useFavourites — custom hook that gives any component access to favourites.
- *
- * Usage:
- *   const { favourites, addFavourite, removeFavourite, isFavourite } = useFavourites()
- */
 function useFavourites() {
   return useContext(FavouritesContext)
 }

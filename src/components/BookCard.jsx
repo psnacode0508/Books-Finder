@@ -1,5 +1,5 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
-import { useFavourites } from '../context/FavouritesContext'
 import { extractWorkId } from '../utils/bookUtils'
 import './BookCard.css'
 
@@ -7,27 +7,28 @@ import './BookCard.css'
  * BookCard — displays a single book result.
  *
  * Props:
- *  - book: { key, title, author, year, coverUrl, coverId }
+ *  - book            : { key, title, author, year, coverUrl }
+ *  - isSaved         : boolean — whether this book is in favourites
+ *  - onToggleFavourite : stable callback (useCallback) from the parent
  *
- * Now includes:
- *  - A "Details" link to /books/:id
- *  - An Add / Remove favourite button wired to FavouritesContext
+ * Why props instead of reading context directly?
+ *   React.memo prevents a re-render only when ALL props are the same reference.
+ *   If BookCard called useFavourites() itself, every change to the favourites
+ *   array would re-subscribe and re-render EVERY card — even ones whose
+ *   favourite status didn't change.
+ *
+ *   By lifting context reads to the parent (HomePage) and passing only
+ *   `isSaved` (a boolean) + `onToggleFavourite` (a stable useCallback),
+ *   React.memo can correctly skip re-rendering cards that haven't changed.
+ *
+ * Why React.memo?
+ *   memo() wraps the component in a higher-order component that does a
+ *   shallow comparison of props before each render. If none of the props
+ *   changed by reference, React reuses the previous render output entirely.
  */
-function BookCard({ book }) {
+const BookCard = memo(function BookCard({ book, isSaved, onToggleFavourite }) {
   const { title, author, year, coverUrl, key } = book
-  const { addFavourite, removeFavourite, isFavourite } = useFavourites()
-
-  // Extract the work ID from the key string (e.g. "/works/OL123W" → "OL123W")
   const workId = extractWorkId(key)
-  const saved = isFavourite(key)
-
-  function handleFavouriteClick() {
-    if (saved) {
-      removeFavourite(key)
-    } else {
-      addFavourite(book)
-    }
-  }
 
   return (
     <article className="book-card">
@@ -52,26 +53,24 @@ function BookCard({ book }) {
         {year && <p className="book-card__year">📅 {year}</p>}
 
         <div className="book-card__actions">
-          {/* Link to the Book Details page */}
           {workId && (
             <Link to={`/books/${workId}`} className="book-card__btn book-card__btn--details">
               Details
             </Link>
           )}
 
-          {/* Add / Remove favourite toggle */}
           <button
             type="button"
-            className={`book-card__btn ${saved ? 'book-card__btn--saved' : 'book-card__btn--fav'}`}
-            onClick={handleFavouriteClick}
-            aria-label={saved ? `Remove ${title} from favourites` : `Add ${title} to favourites`}
+            className={`book-card__btn ${isSaved ? 'book-card__btn--saved' : 'book-card__btn--fav'}`}
+            onClick={onToggleFavourite}
+            aria-label={isSaved ? `Remove ${title} from favourites` : `Add ${title} to favourites`}
           >
-            {saved ? '❤️ Saved' : '🤍 Save'}
+            {isSaved ? '❤️ Saved' : '🤍 Save'}
           </button>
         </div>
       </div>
     </article>
   )
-}
+})
 
 export default BookCard
