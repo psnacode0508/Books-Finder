@@ -12,7 +12,7 @@
   font-family: monospace;
 }
 
-/* ── Filter / sort controls bar ──────────────────────────────────── */
+/* ── Sort controls bar ───────────────────────────────────────────── */
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -43,8 +43,7 @@
   margin-bottom: 0.2rem;
 }
 
-.controls__select,
-.controls__input {
+.controls__select {
   font-size: 0.875rem;
   padding: 0.35rem 0.6rem;
   border: 1px solid #ccc;
@@ -55,25 +54,8 @@
   transition: border-color 0.15s;
 }
 
-.controls__select:focus,
-.controls__input:focus {
+.controls__select:focus {
   border-color: #2c3e50;
-}
-
-/* Year range row */
-.controls__group:last-child .controls__legend + * {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.controls__sep {
-  color: #aaa;
-  font-size: 0.9rem;
-}
-
-.controls__input {
-  width: 90px;
 }
 
 /* ── Results summary line ────────────────────────────────────────── */
@@ -104,4 +86,3 @@
 .book-list__item .book-card {
   flex: 1;
 }
-

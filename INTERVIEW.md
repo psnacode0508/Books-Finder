@@ -20,11 +20,10 @@ using the Open Library API, view details, and save favourites.
 - [x] Book detail page (title, description, subjects, cover)
 - [x] Favourites with Context API
 - [x] Navbar with live favourites count
-- [x] Publication year range filter
 - [x] Newest / oldest sort
 - [x] React.memo on BookCard
 - [x] useCallback for stable handlers
-- [x] useMemo for filtering and sorting
+- [x] useMemo for sorting
 
 ---
 
@@ -32,10 +31,10 @@ using the Open Library API, view details, and save favourites.
 
 | Concept | Where Used |
 |---|---|
-| `useState` | Search input, sort order, year filters |
+| `useState` | Search input, sort order |
 | `useEffect` | Auto-focus input on mount; data fetching in useFetch |
 | `useRef` | Focus control, render counter |
-| `useMemo` | Filtered and sorted book list |
+| `useMemo` | Sorted book list |
 | `useCallback` | Stable toggle handler passed to BookCard |
 | `React.memo` | BookCard — skips re-render when props unchanged |
 | `useContext` | FavouritesContext — shared favourites state |

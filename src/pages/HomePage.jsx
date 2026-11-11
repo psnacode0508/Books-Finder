@@ -7,25 +7,6 @@ import { useFavourites } from '../context/FavouritesContext'
 import { buildSearchUrl, normaliseBook } from '../utils/bookUtils'
 import './HomePage.css'
 
-/**
- * HomePage — search interface for Book Finder.
- *
- * Performance notes
- * ─────────────────
- * useMemo:
- *   `filteredSortedBooks` is re-derived only when `books`, `sortOrder`,
- *   `minYear`, or `maxYear` change — not on every keystroke or unrelated
- *   state update.
- *
- * useCallback:
- *   `makeToggleHandler` is memoised per book key so each BookCard receives
- *   the same function reference on re-renders where only *other* books'
- *   favourite status changed. This keeps BookCard's React.memo effective.
- *
- * React.memo (in BookCard):
- *   Only re-renders when its own `book`, `isSaved`, or `onToggleFavourite`
- *   prop changes — prevents the full list from re-painting on a single save.
- */
 function HomePage() {
   // ── Search state ────────────────────────────────────────────────────
   const [query, setQuery]         = useState('')
@@ -33,10 +14,8 @@ function HomePage() {
   const searchUrl                 = buildSearchUrl(debouncedQuery)
   const { data, loading, error }  = useFetch(searchUrl)
 
-  // ── Filter / sort state ─────────────────────────────────────────────
-  const [sortOrder, setSortOrder] = useState('none')   // 'none' | 'newest' | 'oldest'
-  const [minYear, setMinYear]     = useState('')        // empty string = no lower bound
-  const [maxYear, setMaxYear]     = useState('')        // empty string = no upper bound
+  // ── Sort state ──────────────────────────────────────────────────────
+  const [sortOrder, setSortOrder] = useState('none') // 'none' | 'newest' | 'oldest'
 
   // ── Refs ────────────────────────────────────────────────────────────
   const searchInputRef = useRef(null)
@@ -57,44 +36,31 @@ function HomePage() {
     return data.docs.map(normaliseBook)
   }, [data])
 
-  // ── useMemo: filter then sort ────────────────────────────────────────
+  // ── useMemo: sort books ──────────────────────────────────────────────
   /**
-   * filteredSortedBooks is recomputed only when books, sortOrder,
-   * minYear, or maxYear change — not on every render of the parent.
+   * sortedBooks is recomputed only when books or sortOrder change.
    *
-   * Missing-year handling: books without a year are kept in the list but
-   * sorted to the bottom so they don't confuse the ordering.
+   * Missing-year handling: books without a year are placed at the end
+   * when sorting by newest or oldest.
    */
-  const filteredSortedBooks = useMemo(() => {
-    const min = minYear !== '' ? Number(minYear) : null
-    const max = maxYear !== '' ? Number(maxYear) : null
-
-    // 1. Filter by year range
-    const filtered = books.filter((book) => {
-      if (!book.year) return true       // keep books with unknown year
-      if (min !== null && book.year < min) return false
-      if (max !== null && book.year > max) return false
-      return true
-    })
-
-    // 2. Sort
+  const sortedBooks = useMemo(() => {
     if (sortOrder === 'newest') {
-      return [...filtered].sort((a, b) => {
-        if (a.year === null) return 1   // push unknown-year books to end
+      return [...books].sort((a, b) => {
+        if (a.year === null) return 1
         if (b.year === null) return -1
         return b.year - a.year
       })
     }
     if (sortOrder === 'oldest') {
-      return [...filtered].sort((a, b) => {
+      return [...books].sort((a, b) => {
         if (a.year === null) return 1
         if (b.year === null) return -1
         return a.year - b.year
       })
     }
 
-    return filtered   // 'none' — keep API order
-  }, [books, sortOrder, minYear, maxYear])
+    return books // 'none' — keep API order
+  }, [books, sortOrder])
 
   // ── useCallback: stable per-book toggle handler ──────────────────────
   /**
@@ -119,10 +85,8 @@ function HomePage() {
   )
 
   // ── Derived flags ───────────────────────────────────────────────────
-  const hasResults  = filteredSortedBooks.length > 0
+  const hasResults  = sortedBooks.length > 0
   const hasSearched = debouncedQuery.trim() !== ''
-  const totalRaw    = books.length
-  const totalShown  = filteredSortedBooks.length
 
   return (
     <div className="home-page">
@@ -134,7 +98,7 @@ function HomePage() {
         🔄 HomePage render count: {renderCountRef.current}
       </p>
 
-      {/* ── Filter & sort controls — only shown when there are results ── */}
+      {/* ── Sort controls — shown when there are search results ──────── */}
       {!loading && hasResults && (
         <div className="controls">
           <fieldset className="controls__group">
@@ -149,31 +113,6 @@ function HomePage() {
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
             </select>
-          </fieldset>
-
-          <fieldset className="controls__group">
-            <legend className="controls__legend">Year range</legend>
-            <input
-              type="number"
-              className="controls__input"
-              placeholder="From"
-              value={minYear}
-              onChange={(e) => setMinYear(e.target.value)}
-              min="1000"
-              max="2100"
-              aria-label="Minimum publication year"
-            />
-            <span className="controls__sep">–</span>
-            <input
-              type="number"
-              className="controls__input"
-              placeholder="To"
-              value={maxYear}
-              onChange={(e) => setMaxYear(e.target.value)}
-              min="1000"
-              max="2100"
-              aria-label="Maximum publication year"
-            />
           </fieldset>
         </div>
       )}
@@ -193,17 +132,10 @@ function HomePage() {
         </div>
       )}
 
-      {/* ── No results after API ─────────────────────────────────────── */}
-      {!loading && !error && hasSearched && totalRaw === 0 && data && (
+      {/* ── No results after API search ─────────────────────────────── */}
+      {!loading && !error && hasSearched && books.length === 0 && data && (
         <div className="status-box status-box--empty">
           😕 No books found for &ldquo;{debouncedQuery}&rdquo;. Try a different keyword.
-        </div>
-      )}
-
-      {/* ── All filtered out by year range ──────────────────────────── */}
-      {!loading && !error && totalRaw > 0 && totalShown === 0 && (
-        <div className="status-box status-box--empty">
-          😕 No books match the selected year range. Try widening the filter.
         </div>
       )}
 
@@ -211,18 +143,12 @@ function HomePage() {
       {!loading && !error && hasResults && (
         <>
           <p className="results-summary">
-            Showing {totalShown} of {totalRaw} result{totalRaw !== 1 ? 's' : ''} for&nbsp;
+            Showing {sortedBooks.length} result{sortedBooks.length !== 1 ? 's' : ''} for&nbsp;
             &ldquo;{debouncedQuery}&rdquo;
           </p>
           <ul className="book-list" aria-label="Search results">
-            {filteredSortedBooks.map((book) => (
+            {sortedBooks.map((book) => (
               <li key={book.key} className="book-list__item">
-                {/*
-                  isSaved and onToggleFavourite are computed here (in the
-                  parent), not inside BookCard. This means BookCard itself
-                  does not subscribe to FavouritesContext — React.memo can
-                  short-circuit correctly.
-                */}
                 <BookCard
                   book={book}
                   isSaved={isFavourite(book.key)}

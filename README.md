@@ -11,7 +11,7 @@ and save favourites using the Open Library public API.
 - 📖 **Book Cards** — cover image, title, author, publication year with graceful fallbacks
 - 📄 **Book Details** — full detail page with description, subjects, and larger cover
 - ❤️ **Favourites** — save and remove books; count shown live in the Navbar
-- 🗂️ **Filter & Sort** — publication year range filter, newest-first / oldest-first sort
+- 🗂️ **Sorting** — newest-first / oldest-first sort (using `useMemo`)
 - 🧭 **Routing** — `/`, `/books/:id`, `/favourites`, and a 404 catch-all
 - ⚡ **Performance** — `React.memo`, `useCallback`, `useMemo` to minimise unnecessary renders
 
@@ -49,7 +49,7 @@ BookFinder/
 │   │   ├── useFetch.js       # Generic fetch hook with AbortController
 │   │   └── useDebounce.js    # Delays a value by N ms
 │   ├── pages/
-│   │   ├── HomePage.jsx      # Search + filter + sort
+│   │   ├── HomePage.jsx      # Search + sort
 │   │   ├── HomePage.css
 │   │   ├── BookDetailPage.jsx # Works API detail view
 │   │   ├── BookDetailPage.css
@@ -108,7 +108,7 @@ npm run preview
 | `useState` | Throughout | Local component state |
 | `useEffect` | `useFetch`, `useDebounce`, `HomePage` | Side-effects: fetch, timer, focus |
 | `useRef` | `HomePage` | Auto-focus input; render counter |
-| `useMemo` | `HomePage` | Derive filtered + sorted book list |
+| `useMemo` | `HomePage` | Derive sorted book list |
 | `useCallback` | `HomePage`, `FavouritesContext` | Stable function references for memo |
 | `useContext` | `useFavourites`, `Navbar` | Read shared favourites state |
 | `useParams` | `BookDetailPage` | Read `:id` from URL |
